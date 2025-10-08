@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Condomínios - Filtro Visual</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(270deg, #0ff, #000);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    h1 {
+      color: #0ff;
+      margin-bottom: 10px;
+    }
+
+    #searchBar {
+      width: 90%;
+      max-width: 600px;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: 1px solid #0ff;
+      background-color: #000;
+      color: #0ff;
+    }
+
+    .lista {
+      max-width: 600px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      background-color: #000;
+      color: #0ff;
+      border: 1px solid #0ff;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #0ff;
+      color: #000;
+    }
+
+    .imagem-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .imagem-popup img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 12px;
+      box-shadow: 0 0 25px #0ff;
+      cursor: zoom-in;
+      transition: transform 0.3s ease;
+    }
+
+    .imagem-popup.fullscreen img {
+      cursor: zoom-out;
+      transform: scale(1.2);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      background: none;
+      color: white;
+      font-size: 30px;
+      border: none;
+      opacity: 0.5;
+      cursor: pointer;
+      z-index: 1100;
+    }
+  </style>
+</head>
+<body>
+  <h1>Selecione um Condomínio</h1>
+  <input type="text" id="searchBar" placeholder="Pesquise o nome do condomínio..." />
+  <div class="lista" id="condominio-list"></div>
+
+  <div class="imagem-popup" id="imagem-container" style="display: none;">
+    <button class="close-btn" onclick="ocultarImagem()">&times;</button>
+    <a id="link-imagem" target="_blank" download>
+      <img id="imagem-condominio" src="" alt="Imagem do Condomínio" onclick="toggleFullscreen(this)" />
+    </a>
+  </div>
+
+  <script>
+    const condominioMap = {
+      "ramos.jpeg": ["Alto São Cristóvão", "Vivaz Marechal Rondon", "Dez Ramos", "Vivaz Ramos", "Apogeu Barra"],
+      "promo.jpeg": ["PROMOÇÃO"],
+      "padrao.jpeg": ["Jeriva", "Porto Barao", "Rio Energy", "Unico Nova Iguaçu", "Nova Norte Samba", "Viva Vida Zona Oeste", "Rio Samba", "Tupinambas", "Grand Royal", "Reserva do Sol", "Parque Iris", "Atmosfera", "Carioca Park", "Solar dos Canarios", "Living Parque Jasmim", "My Style", "Flor de Laranjeira", "Parque II", "Parque Violeta", "Vivaz Magarça", "Brito I", "Brito II", "Jardim dos Ipes I", "Jardim dos Ipes II", "Jardim dos Ipes III", "Novolar Vargem Grande", "Novolar Recreio", "Orla Recreio Grumari", "Orla Recreio Prainha", "Parque I", "Reserva Pontal", "Resid. Pedra de Guaratiba", "Residencial Ipes", "Vitale Eco", "Viva Vida Moinho", "Varandas do Park", "Viva Vida Santa Cruz", "Viver Mais Campo Grande", "Stillo Barra", "Enseada do Mar", "Esplendor Carioca", "Living Sunset", "Patio Engenho Novo", "Praia Formosa", "Rio Wonder Maua", "Rio Wonder Cais", "Spazio Life", "Spazio Rockfeller", "Spazio Roosevelt", "Torres do Meier", "Único Bonsucesso", "Completo Engenho Novo", "Viva Mais Engenho Novo", "Completo Piedade", "Dez Bonsucesso", "Dez Iraja", "Dez Zona Norte", "Living Choice", "Retiro dos Pinheiro", "Retiro da Serra", "Único Engenho Novo", "Urban São Cristovão", "Urban Zona Norte", "Vivaz Piedade", "Viva Vida Zona Norte", "Completo Bonsucesso", "Flores 1 e 2", "Merito Zona Norte", "Florença", "Hibisco", "Arte Rosario", "Jasmim", "Lirios I", "Lirios II", "Naturalis", "Novita", "Parque Tulipa", "Quinta do Ipê", "Recanto da Colina", "Recanto da Serra", "Recanto das Flores", "Recanto Verde", "Rio Araras", "Rio Bossa Nova", "Rio Jazz", "Rio Mantiqueira", "Rio Oceane", "Rio Rock", "Royal Blue", "Ventura", "Verona", "Villagio Silvestre", "Viva Vida Felicidade", "Viva Vida Harmonia", "Viva Vida Recanto", "West Garden"]
+    };
+
+    const listaContainer = document.getElementById("condominio-list");
+    const imagemContainer = document.getElementById("imagem-container");
+    const imagemEl = document.getElementById("imagem-condominio");
+    const linkEl = document.getElementById("link-imagem");
+    const searchBar = document.getElementById("searchBar");
+
+    let condominioButtons = [];
+
+    const entries = Object.entries(condominioMap).flatMap(([imagem, nomes]) =>
+      nomes.map(nome => ({ nome, imagem }))
+    );
+
+    // Ordenar em ordem alfabética
+    entries.sort((a, b) => a.nome.localeCompare(b.nome));
+
+    entries.forEach(entry => {
+      const btn = document.createElement("button");
+      btn.innerText = entry.nome;
+      btn.onclick = () => mostrarImagem(entry.imagem);
+      listaContainer.appendChild(btn);
+      condominioButtons.push({ nome: entry.nome.toLowerCase(), element: btn });
+    });
+
+    searchBar.addEventListener("input", e => {
+      const query = e.target.value.toLowerCase();
+      condominioButtons.forEach(({ nome, element }) => {
+        element.style.display = nome.includes(query) ? "block" : "none";
+      });
+    });
+
+    function mostrarImagem(nomeArquivo) {
+      imagemEl.src = nomeArquivo;
+      linkEl.href = nomeArquivo;
+      imagemContainer.style.display = "flex";
+      imagemContainer.classList.remove("fullscreen");
+    }
+
+    function ocultarImagem() {
+      imagemContainer.style.display = "none";
+    }
+
+    function toggleFullscreen(img) {
+      imagemContainer.classList.toggle("fullscreen");
+    }
+  </script>
+</body>
+</html>
